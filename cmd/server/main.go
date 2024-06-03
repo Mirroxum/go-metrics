@@ -33,12 +33,12 @@ func (s *MemStorage) UpdateCounter(name string, value int64) {
 	s.counters[name] += value
 }
 
-func (s *MemStorage) GetGauge(name string, value float64) (float64, bool) {
+func (s *MemStorage) GetGauge(name string) (float64, bool) {
 	value, exists := s.gauges[name]
 	return value, exists
 }
 
-func (s *MemStorage) GetCounter(name string, value int64) (int64, bool) {
+func (s *MemStorage) GetCounter(name string) (int64, bool) {
 	value, exists := s.counters[name]
 	return value, exists
 }
