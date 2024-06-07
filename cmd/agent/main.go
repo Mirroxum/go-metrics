@@ -82,8 +82,8 @@ func updateRuntimeMetrics() RuntimeMetrics {
 	return metrics
 }
 
-func sendDataToServer(metrics RuntimeMetrics) error {
-	metricsMap := map[string]float64{
+func sendDataToServer(serverURL string, metrics RuntimeMetrics) error {
+	metricsMap := map[string]interface{}{
 		"Alloc":         metrics.Alloc,
 		"BuckHashSys":   metrics.BuckHashSys,
 		"Frees":         metrics.Frees,
@@ -111,7 +111,7 @@ func sendDataToServer(metrics RuntimeMetrics) error {
 		"StackSys":      metrics.StackSys,
 		"Sys":           metrics.Sys,
 		"TotalAlloc":    metrics.TotalAlloc,
-		"PollCount":     float64(metrics.PollCount),
+		"PollCount":     metrics.PollCount,
 		"RandomValue":   metrics.RandomValue,
 	}
 
@@ -122,20 +122,19 @@ func sendDataToServer(metrics RuntimeMetrics) error {
 		} else {
 			metricType = "gauge"
 		}
-		link := fmt.Sprintf("%s/update/%s/%s/%v", serverAddress, metricType, metricName, metricValue)
-        fmt.Println(link)
-        resp, err := http.Post(link, "text/plain", nil)
-        
-        if err != nil {
-            return err
-        }
-        defer resp.Body.Close()
+		link := fmt.Sprintf("%s/update/%s/%s/%v", serverURL, metricType, metricName, metricValue)
+		fmt.Println(link)
+		resp, err := http.Post(link, "text/plain", nil)
 
-        if resp.StatusCode != http.StatusOK {
-            return fmt.Errorf("server returned non-200 status code: %d", resp.StatusCode)
-        }
+		if err != nil {
+			return err
+		}
+		defer resp.Body.Close()
+
+		if resp.StatusCode != http.StatusOK {
+			return fmt.Errorf("server returned non-200 status code: %d", resp.StatusCode)
+		}
 	}
-
 
 	return nil
 }
@@ -149,7 +148,7 @@ func main() {
 		metrics = updateRuntimeMetrics()
 
 		if time.Since(lastReportTime) >= reportInterval {
-			err := sendDataToServer(metrics)
+			err := sendDataToServer(serverAddress, metrics)
 			if err != nil {
 				fmt.Println("Error sending metrics to server:", err)
 			} else {
