@@ -24,7 +24,7 @@ func GetMetricsHandler(w http.ResponseWriter, r *http.Request) {
 
 	w.WriteHeader(http.StatusOK)
 	w.Header().Set("Content-Type", "text/html")
-	fmt.Fprintf(w, strings.Join(metrics, ""))
+	w.Write([]byte(strings.Join(metrics, "")))
 }
 
 func GetMetricHandler(w http.ResponseWriter, r *http.Request) {
@@ -49,7 +49,7 @@ func GetMetricHandler(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	w.WriteHeader(http.StatusOK)
-	fmt.Fprintf(w, "%v", value)
+	w.Write([]byte(fmt.Sprintf("%v", value)))
 }
 
 func UpdateMetricHandler(w http.ResponseWriter, r *http.Request) {
