@@ -1,28 +1,16 @@
 package main
 
 import (
-	"fmt"
 	"net/http"
 	"strconv"
-	"strings"
+
+	"github.com/go-chi/chi/v5"
 )
 
 func UpdateMetricHandler(w http.ResponseWriter, r *http.Request) {
-	fmt.Println(r.Method + " " + r.URL.Path)
-	if r.Method != http.MethodPost {
-		http.Error(w, "method not allowed", http.StatusMethodNotAllowed)
-		return
-	}
-
-	parts := strings.Split(r.URL.Path, "/")
-	if len(parts) != 5 {
-		http.Error(w, "invalid URL format", http.StatusNotFound)
-		return
-	}
-
-	metricType := MetricType(parts[2])
-	metricName := parts[3]
-	metricValue := parts[4]
+	metricType := MetricType(chi.URLParam(r, "metricType"))
+	metricName := chi.URLParam(r, "metricName")
+	metricValue := chi.URLParam(r, "metricValue")
 
 	if metricName == "" {
 		http.Error(w, "metric name is required", http.StatusNotFound)

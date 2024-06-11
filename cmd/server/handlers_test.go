@@ -6,9 +6,13 @@ import (
 	"testing"
 
 	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
 )
 
-func TestUpdateMetricHandler(t *testing.T) {
+func TestUpdateMetricRouter(t *testing.T) {
+	ts := httptest.NewServer(UpdateMetricRouter())
+	defer ts.Close()
+
 	tests := []struct {
 		name           string
 		method         string
@@ -27,12 +31,14 @@ func TestUpdateMetricHandler(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			req := httptest.NewRequest(tt.method, tt.url, nil)
-			w := httptest.NewRecorder()
-			handler := http.HandlerFunc(UpdateMetricHandler)
-			handler(w, req)
+			req, err := http.NewRequest(tt.method, ts.URL+tt.url, nil)
+			require.NoError(t, err)
 
-			assert.Equal(t, w.Code, tt.expectedStatus)
+			resp, err := http.DefaultClient.Do(req)
+			require.NoError(t, err)
+			defer resp.Body.Close()
+
+			assert.Equal(t, tt.expectedStatus, resp.StatusCode)
 		})
 	}
 }
