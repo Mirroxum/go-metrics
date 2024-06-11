@@ -7,17 +7,21 @@ import (
 	"github.com/go-chi/chi/v5/middleware"
 )
 
-func UpdateMetricRouter() chi.Router {
+func MetricRouter() chi.Router {
 	r := chi.NewRouter()
 	r.Use(middleware.Logger)
+	r.Get("/", GetMetricsHandler)
 	r.Route("/update", func(r chi.Router) {
 		r.Post("/{metricType}/{metricName}/{metricValue}", UpdateMetricHandler)
+	})
+	r.Route("/value", func(r chi.Router) {
+		r.Get("/{metricType}/{metricName}", GetMetricHandler)
 	})
 	return r
 }
 
 func main() {
-	err := http.ListenAndServe(":8080", UpdateMetricRouter())
+	err := http.ListenAndServe(":8080", MetricRouter())
 	if err != nil {
 		panic(err)
 	}
