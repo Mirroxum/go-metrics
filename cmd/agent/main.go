@@ -44,7 +44,7 @@ type RuntimeMetrics struct {
 var (
 	pollInterval   = time.Duration(*FlagPollInterval) * time.Second
 	reportInterval = time.Duration(*FlagReportInterval) * time.Second
-	serverAddress  = *FlagServerAddress
+	serverAddress  = fmt.Sprintf("http://%s", *FlagServerAddress)
 )
 
 func updateRuntimeMetrics() RuntimeMetrics {
@@ -123,7 +123,7 @@ func sendDataToServer(serverURL string, metrics RuntimeMetrics) error {
 		} else {
 			metricType = "gauge"
 		}
-		link := fmt.Sprintf("http://%s/update/%s/%s/%v", serverURL, metricType, metricName, metricValue)
+		link := fmt.Sprintf("%s/update/%s/%s/%v", serverURL, metricType, metricName, metricValue)
 		fmt.Println(link)
 		resp, err := http.Post(link, "text/plain", nil)
 
@@ -153,7 +153,7 @@ func main() {
 		metrics := updateRuntimeMetrics()
 
 		if time.Since(lastReportTime) >= reportInterval {
-			err := sendDataToServer(*FlagServerAddress, metrics)
+			err := sendDataToServer(serverAddress, metrics)
 			if err != nil {
 				fmt.Println("Error sending metrics to server:", err)
 			} else {
