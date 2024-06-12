@@ -1,7 +1,6 @@
 package main
 
 import (
-	"flag"
 	"fmt"
 	"math/rand"
 	"net/http"
@@ -135,17 +134,18 @@ func sendDataToServer(serverURL string, metrics RuntimeMetrics) error {
 }
 
 func main() {
-	flag.Parse()
+	loadConfig()
+	parseFlags()
 
 	var (
-		pollInterval   = time.Duration(*FlagPollInterval) * time.Second
-		reportInterval = time.Duration(*FlagReportInterval) * time.Second
-		serverAddress  = fmt.Sprintf("http://%s", *FlagServerAddress)
+		pollInterval   = time.Duration(FlagPollInterval) * time.Second
+		reportInterval = time.Duration(FlagReportInterval) * time.Second
+		serverAddress  = fmt.Sprintf("http://%s", FlagServerAddress)
 	)
 
 	fmt.Printf("Metrics will be sent to the HTTP server address: %s\n", serverAddress)
-	fmt.Printf("Frequency of sending metrics to the server: %d seconds\n", *FlagReportInterval)
-	fmt.Printf("Frequency of polling metrics from the runtime package: %d seconds\n", *FlagPollInterval)
+	fmt.Printf("Frequency of sending metrics to the server: %d seconds\n", FlagReportInterval)
+	fmt.Printf("Frequency of polling metrics from the runtime package: %d seconds\n", FlagPollInterval)
 
 	lastReportTime := time.Now()
 
