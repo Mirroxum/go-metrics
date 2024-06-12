@@ -41,12 +41,6 @@ type RuntimeMetrics struct {
 	RandomValue   float64
 }
 
-var (
-	pollInterval   = time.Duration(*FlagPollInterval) * time.Second
-	reportInterval = time.Duration(*FlagReportInterval) * time.Second
-	serverAddress  = fmt.Sprintf("http://%s", *FlagServerAddress)
-)
-
 func updateRuntimeMetrics() RuntimeMetrics {
 	var metrics RuntimeMetrics
 	var stats runtime.MemStats
@@ -142,6 +136,13 @@ func sendDataToServer(serverURL string, metrics RuntimeMetrics) error {
 
 func main() {
 	flag.Parse()
+
+	var (
+		pollInterval   = time.Duration(*FlagPollInterval) * time.Second
+		reportInterval = time.Duration(*FlagReportInterval) * time.Second
+		serverAddress  = fmt.Sprintf("http://%s", *FlagServerAddress)
+	)
+
 	fmt.Printf("Metrics will be sent to the HTTP server address: %s\n", serverAddress)
 	fmt.Printf("Frequency of sending metrics to the server: %d seconds\n", *FlagReportInterval)
 	fmt.Printf("Frequency of polling metrics from the runtime package: %d seconds\n", *FlagPollInterval)
