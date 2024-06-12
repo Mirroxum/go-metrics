@@ -1,6 +1,8 @@
 package main
 
 import (
+	"flag"
+	"fmt"
 	"net/http"
 
 	"github.com/go-chi/chi/v5"
@@ -21,7 +23,11 @@ func MetricRouter() chi.Router {
 }
 
 func main() {
-	err := http.ListenAndServe(":8080", MetricRouter())
+	flag.Parse()
+
+	fmt.Printf("HTTP-server address: %s\n", *FlagServerAddress)
+
+	err := http.ListenAndServe(*FlagServerAddress, MetricRouter())
 	if err != nil {
 		panic(err)
 	}

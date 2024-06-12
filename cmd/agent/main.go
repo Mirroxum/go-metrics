@@ -1,6 +1,7 @@
 package main
 
 import (
+	"flag"
 	"fmt"
 	"math/rand"
 	"net/http"
@@ -40,10 +41,10 @@ type RuntimeMetrics struct {
 	RandomValue   float64
 }
 
-const (
-	pollInterval   = 2 * time.Second
-	reportInterval = 10 * time.Second
-	serverAddress  = "http://localhost:8080"
+var (
+	pollInterval   = time.Duration(*FlagPollInterval) * time.Second
+	reportInterval = time.Duration(*FlagReportInterval) * time.Second
+	serverAddress  = *FlagServerAddress
 )
 
 func updateRuntimeMetrics() RuntimeMetrics {
@@ -122,7 +123,7 @@ func sendDataToServer(serverURL string, metrics RuntimeMetrics) error {
 		} else {
 			metricType = "gauge"
 		}
-		link := fmt.Sprintf("%s/update/%s/%s/%v", serverURL, metricType, metricName, metricValue)
+		link := fmt.Sprintf("http://%s/update/%s/%s/%v", serverURL, metricType, metricName, metricValue)
 		fmt.Println(link)
 		resp, err := http.Post(link, "text/plain", nil)
 
@@ -140,15 +141,19 @@ func sendDataToServer(serverURL string, metrics RuntimeMetrics) error {
 }
 
 func main() {
-	var metrics RuntimeMetrics
+	flag.Parse()
+	fmt.Printf("Metrics will be sent to the HTTP server address: %s\n", serverAddress)
+	fmt.Printf("Frequency of sending metrics to the server: %d seconds\n", *FlagReportInterval)
+	fmt.Printf("Frequency of polling metrics from the runtime package: %d seconds\n", *FlagPollInterval)
+
 	lastReportTime := time.Now()
 
 	for {
 		time.Sleep(pollInterval)
-		metrics = updateRuntimeMetrics()
+		metrics := updateRuntimeMetrics()
 
 		if time.Since(lastReportTime) >= reportInterval {
-			err := sendDataToServer(serverAddress, metrics)
+			err := sendDataToServer(*FlagServerAddress, metrics)
 			if err != nil {
 				fmt.Println("Error sending metrics to server:", err)
 			} else {
