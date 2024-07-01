@@ -7,9 +7,7 @@ import (
 
 func main() {
 	loadConfig()
-
 	parseFlags()
-
 	fmt.Printf("HTTP-server address: %s\n", FlagServerAddress)
 
 	err := http.ListenAndServe(FlagServerAddress, MetricRouter())
