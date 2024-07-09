@@ -1,7 +1,6 @@
 package main
 
 import (
-	"github.com/Mirroxum/go-metrics/internal/logger"
 	"github.com/go-chi/chi/v5"
 	"github.com/go-chi/chi/v5/middleware"
 )
@@ -9,7 +8,6 @@ import (
 func MetricRouter() chi.Router {
 	r := chi.NewRouter()
 	r.Use(middleware.Logger)
-	r.Use(logger.RequestLogger)
 	r.Get("/", GetMetricsHandler)
 	r.Route("/update", func(r chi.Router) {
 		r.Post("/{metricType}/{metricName}/{metricValue}", UpdateMetricHandler)

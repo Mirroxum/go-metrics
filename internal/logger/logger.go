@@ -23,12 +23,12 @@ func Initialize(level string) error {
 	return nil
 }
 
-func RequestLogger(next http.Handler) http.Handler {
+func RequestLogger(h http.HandlerFunc) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		Log.Debug("got incoming HTTP request",
 			zap.String("method", r.Method),
 			zap.String("path", r.URL.Path),
 		)
-		next.ServeHTTP(w, r)
+		h(w, r)
 	})
 }
