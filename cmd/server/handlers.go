@@ -20,11 +20,12 @@ type Metrics struct {
 func GetMetricsHandler(w http.ResponseWriter, r *http.Request) {
 	var metrics []string
 
-	gauges, counters := storage.GetAll()
+	gauges := storage.gauges
 	for name, value := range gauges {
 		metrics = append(metrics, fmt.Sprintf("%s (Gauge): %.2f\n", name, value))
 	}
 
+	counters := storage.counters
 	for name, value := range counters {
 		metrics = append(metrics, fmt.Sprintf("%s (Counter): %d\n", name, value))
 	}
@@ -118,32 +119,55 @@ func UpdateJSONMetricHandler(w http.ResponseWriter, r *http.Request) {
 	}
 
 	w.Header().Set("Content-Type", "application/json")
-	json.NewEncoder(w).Encode(metric)
+	if err := json.NewEncoder(w).Encode(metric); err != nil {
+		http.Error(w, "Failed to encode metrics", http.StatusInternalServerError)
+		return
+	}
 }
 
 func GetJSONMetricHandler(w http.ResponseWriter, r *http.Request) {
-	var metrics []Metrics
-
-	gauges, counters := storage.GetAll()
-	for name, value := range gauges {
-
-		metrics = append(metrics, Metrics{
-			ID:    name,
-			MType: Gauge,
-			Value: &value,
-		})
+	var requestMetric Metrics
+	if err := json.NewDecoder(r.Body).Decode(&requestMetric); err != nil {
+		http.Error(w, "Invalid request body", http.StatusBadRequest)
+		return
 	}
 
-	for name, value := range counters {
-		metrics = append(metrics, Metrics{
-			ID:    name,
-			MType: Counter,
-			Delta: &value,
-		})
+	if requestMetric.ID == "" || requestMetric.MType == "" {
+		http.Error(w, "ID and MType are required", http.StatusBadRequest)
+		return
 	}
+	var responseMetric Metrics
+	switch requestMetric.MType {
+	case Gauge:
+		if value, exists := storage.GetGauge(requestMetric.ID); exists {
+			responseMetric = Metrics{
+				ID:    requestMetric.ID,
+				MType: Gauge,
+				Value: &value,
+			}
+		} else {
+			http.Error(w, "Metric not found", http.StatusNotFound)
+			return
+		}
+	case Counter:
+		if value, exists := storage.GetCounter(requestMetric.ID); exists {
+			responseMetric = Metrics{
+				ID:    requestMetric.ID,
+				MType: Counter,
+				Delta: &value,
+			}
+		} else {
+			http.Error(w, "Metric not found", http.StatusNotFound)
+			return
+		}
+	default:
+		http.Error(w, "Invalid metric type", http.StatusBadRequest)
+		return
+	}
+
 	w.Header().Set("Content-Type", "application/json")
-	if err := json.NewEncoder(w).Encode(metrics); err != nil {
-		http.Error(w, "Failed to encode metrics", http.StatusInternalServerError)
+	if err := json.NewEncoder(w).Encode(responseMetric); err != nil {
+		http.Error(w, "Failed to encode metric", http.StatusInternalServerError)
 		return
 	}
 }

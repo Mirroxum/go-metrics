@@ -37,19 +37,4 @@ func (s *MemStorage) GetCounter(name string) (int64, bool) {
 	return value, exists
 }
 
-func (s *MemStorage) GetAll() (map[string]float64, map[string]int64) {
-	gaugesCopy := make(map[string]float64)
-	countersCopy := make(map[string]int64)
-
-	for k, v := range s.gauges {
-		gaugesCopy[k] = v
-	}
-
-	for k, v := range s.counters {
-		countersCopy[k] = v
-	}
-
-	return gaugesCopy, countersCopy
-}
-
 var storage = NewMemStorage()
