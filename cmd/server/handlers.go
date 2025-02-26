@@ -10,15 +10,21 @@ import (
 	"github.com/go-chi/chi/v5"
 )
 
+type Metrics struct {
+	ID    string     `json:"id"`              // имя метрики
+	MType MetricType `json:"type"`            // параметр, принимающий значение gauge или counter
+	Delta *int64     `json:"delta,omitempty"` // значение метрики в случае передачи counter
+	Value *float64   `json:"value,omitempty"` // значение метрики в случае передачи gauge
+}
+
 func GetMetricsHandler(w http.ResponseWriter, r *http.Request) {
 	var metrics []string
 
-	gauges := storage.gauges
+	gauges, counters := storage.GetAll()
 	for name, value := range gauges {
 		metrics = append(metrics, fmt.Sprintf("%s (Gauge): %.2f\n", name, value))
 	}
 
-	counters := storage.counters
 	for name, value := range counters {
 		metrics = append(metrics, fmt.Sprintf("%s (Counter): %d\n", name, value))
 	}
@@ -86,12 +92,6 @@ func UpdateMetricHandler(w http.ResponseWriter, r *http.Request) {
 }
 
 func UpdateJSONMetricHandler(w http.ResponseWriter, r *http.Request) {
-	type Metrics struct {
-		ID    string     `json:"id"`              // имя метрики
-		MType MetricType `json:"type"`            // параметр, принимающий значение gauge или counter
-		Delta *int64     `json:"delta,omitempty"` // значение метрики в случае передачи counter
-		Value *float64   `json:"value,omitempty"` // значение метрики в случае передачи gauge
-	}
 
 	var metric Metrics
 	if err := json.NewDecoder(r.Body).Decode(&metric); err != nil {
@@ -119,4 +119,31 @@ func UpdateJSONMetricHandler(w http.ResponseWriter, r *http.Request) {
 
 	w.Header().Set("Content-Type", "application/json")
 	json.NewEncoder(w).Encode(metric)
+}
+
+func GetJSONMetricHandler(w http.ResponseWriter, r *http.Request) {
+	var metrics []Metrics
+
+	gauges, counters := storage.GetAll()
+	for name, value := range gauges {
+
+		metrics = append(metrics, Metrics{
+			ID:    name,
+			MType: Gauge,
+			Value: &value,
+		})
+	}
+
+	for name, value := range counters {
+		metrics = append(metrics, Metrics{
+			ID:    name,
+			MType: Counter,
+			Delta: &value,
+		})
+	}
+	w.Header().Set("Content-Type", "application/json")
+	if err := json.NewEncoder(w).Encode(metrics); err != nil {
+		http.Error(w, "Failed to encode metrics", http.StatusInternalServerError)
+		return
+	}
 }

@@ -15,6 +15,7 @@ func MetricRouter() chi.Router {
 	})
 	r.Route("/value", func(r chi.Router) {
 		r.Get("/{metricType}/{metricName}", GetMetricHandler)
+		r.Post("/", GetJSONMetricHandler)
 	})
 	return r
 }
