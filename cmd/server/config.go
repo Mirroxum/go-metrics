@@ -6,6 +6,7 @@ import (
 
 type Config struct {
 	ServerAddress string `env:"ADDRESS"`
+	LogLevel      string `env:"LOG_LEVEL"`
 }
 
 var AppConfig Config

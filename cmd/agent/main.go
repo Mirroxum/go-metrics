@@ -1,6 +1,8 @@
 package main
 
 import (
+	"bytes"
+	"encoding/json"
 	"fmt"
 	"math/rand"
 	"net/http"
@@ -108,6 +110,12 @@ func sendDataToServer(serverURL string, metrics RuntimeMetrics) error {
 		"PollCount":     metrics.PollCount,
 		"RandomValue":   metrics.RandomValue,
 	}
+	type Metrics struct {
+		ID    string   `json:"id"`              // имя метрики
+		MType string   `json:"type"`            // параметр, принимающий значение gauge или counter
+		Delta *int64   `json:"delta,omitempty"` // значение метрики в случае передачи counter
+		Value *float64 `json:"value,omitempty"` // значение метрики в случае передачи gauge
+	}
 
 	for metricName, metricValue := range metricsMap {
 		var metricType string
@@ -116,12 +124,31 @@ func sendDataToServer(serverURL string, metrics RuntimeMetrics) error {
 		} else {
 			metricType = "gauge"
 		}
-		link := fmt.Sprintf("%s/update/%s/%s/%v", serverURL, metricType, metricName, metricValue)
-		fmt.Println(link)
-		resp, err := http.Post(link, "text/plain", nil)
+
+		metric := Metrics{
+			ID:    metricName,
+			MType: metricType,
+		}
+
+		if metricType == "gauge" {
+			value := metricValue.(float64)
+			metric.Value = &value
+		} else {
+			delta := metricValue.(int64)
+			metric.Delta = &delta
+		}
+
+		jsonData, err := json.Marshal(metric)
+		if err != nil {
+			return fmt.Errorf("failed to marshal metric: %w", err)
+		}
+
+		link := fmt.Sprintf("%s/update/", serverURL)
+		fmt.Println("Sending to:", link, "Data:", string(jsonData))
+		resp, err := http.Post(link, "text/plain", bytes.NewBuffer(jsonData))
 
 		if err != nil {
-			return err
+			return fmt.Errorf("failed to send metric: %w", err)
 		}
 		defer resp.Body.Close()
 
