@@ -11,6 +11,7 @@ func MetricRouter() chi.Router {
 	r.Get("/", GetMetricsHandler)
 	r.Route("/update", func(r chi.Router) {
 		r.Post("/{metricType}/{metricName}/{metricValue}", UpdateMetricHandler)
+		r.Post("/", UpdateJSONMetricHandler)
 	})
 	r.Route("/value", func(r chi.Router) {
 		r.Get("/{metricType}/{metricName}", GetMetricHandler)

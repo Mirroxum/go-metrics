@@ -1,6 +1,7 @@
 package main
 
 import (
+	"encoding/json"
 	"fmt"
 	"net/http"
 	"strconv"
@@ -82,4 +83,40 @@ func UpdateMetricHandler(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	w.WriteHeader(http.StatusOK)
+}
+
+func UpdateJSONMetricHandler(w http.ResponseWriter, r *http.Request) {
+	type Metrics struct {
+		ID    string     `json:"id"`              // имя метрики
+		MType MetricType `json:"type"`            // параметр, принимающий значение gauge или counter
+		Delta *int64     `json:"delta,omitempty"` // значение метрики в случае передачи counter
+		Value *float64   `json:"value,omitempty"` // значение метрики в случае передачи gauge
+	}
+
+	var metric Metrics
+	if err := json.NewDecoder(r.Body).Decode(&metric); err != nil {
+		http.Error(w, err.Error(), http.StatusBadRequest)
+		return
+	}
+
+	switch metric.MType {
+	case Gauge:
+		if metric.Value == nil {
+			http.Error(w, "Value is required for gauge metric", http.StatusBadRequest)
+			return
+		}
+		storage.UpdateGauge(metric.ID, *metric.Value)
+	case Counter:
+		if metric.Delta == nil {
+			http.Error(w, "Delta is required for counter metric", http.StatusBadRequest)
+			return
+		}
+		storage.UpdateCounter(metric.ID, *metric.Delta)
+	default:
+		http.Error(w, "Invalid metric type", http.StatusBadRequest)
+		return
+	}
+
+	w.Header().Set("Content-Type", "application/json")
+	json.NewEncoder(w).Encode(metric)
 }
