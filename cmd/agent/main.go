@@ -2,6 +2,7 @@ package main
 
 import (
 	"bytes"
+	"compress/gzip"
 	"encoding/json"
 	"fmt"
 	"math/rand"
@@ -143,9 +144,25 @@ func sendDataToServer(serverURL string, metrics RuntimeMetrics) error {
 			return fmt.Errorf("failed to marshal metric: %w", err)
 		}
 
+		var buf bytes.Buffer
+		gz := gzip.NewWriter(&buf)
+		if _, err := gz.Write(jsonData); err != nil {
+			return fmt.Errorf("failed to compress data: %w", err)
+		}
+		gz.Close()
+
 		link := fmt.Sprintf("%s/update/", serverURL)
 		fmt.Println("Sending to:", link, "Data:", string(jsonData))
-		resp, err := http.Post(link, "text/plain", bytes.NewBuffer(jsonData))
+		req, err := http.NewRequest("POST", link, &buf)
+		if err != nil {
+			return fmt.Errorf("failed to create request: %w", err)
+		}
+		req.Header.Set("Content-Encoding", "gzip")
+		req.Header.Set("Content-Type", "application/json")
+		req.Header.Set("Accept-Encoding", "gzip")
+
+		client := &http.Client{}
+		resp, err := client.Do(req)
 
 		if err != nil {
 			return fmt.Errorf("failed to send metric: %w", err)
