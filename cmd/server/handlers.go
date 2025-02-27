@@ -18,21 +18,24 @@ type Metrics struct {
 }
 
 func GetMetricsHandler(w http.ResponseWriter, r *http.Request) {
-	var metrics []string
+	var metricsHTML strings.Builder
 
-	gauges := storage.gauges
-	for name, value := range gauges {
-		metrics = append(metrics, fmt.Sprintf("%s (Gauge): %.2f\n", name, value))
+	metricsHTML.WriteString("<html><body><h1>Metrics</h1><ul>")
+
+	for name, value := range storage.gauges {
+		metricsHTML.WriteString(fmt.Sprintf("<li>%s (Gauge): %.2f</li>", name, value))
 	}
 
-	counters := storage.counters
-	for name, value := range counters {
-		metrics = append(metrics, fmt.Sprintf("%s (Counter): %d\n", name, value))
+	for name, value := range storage.counters {
+		metricsHTML.WriteString(fmt.Sprintf("<li>%s (Counter): %d</li>", name, value))
 	}
+
+	metricsHTML.WriteString("</ul></body></html>")
+
+	w.Header().Set("Content-Type", "text/html")
 
 	w.WriteHeader(http.StatusOK)
-	w.Header().Set("Content-Type", "text/html")
-	w.Write([]byte(strings.Join(metrics, "")))
+	w.Write([]byte(metricsHTML.String()))
 }
 
 func GetMetricHandler(w http.ResponseWriter, r *http.Request) {
