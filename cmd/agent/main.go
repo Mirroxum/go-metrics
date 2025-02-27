@@ -1,6 +1,9 @@
 package main
 
 import (
+	"bytes"
+	"compress/gzip"
+	"encoding/json"
 	"fmt"
 	"math/rand"
 	"net/http"
@@ -108,6 +111,12 @@ func sendDataToServer(serverURL string, metrics RuntimeMetrics) error {
 		"PollCount":     metrics.PollCount,
 		"RandomValue":   metrics.RandomValue,
 	}
+	type Metrics struct {
+		ID    string   `json:"id"`              // имя метрики
+		MType string   `json:"type"`            // параметр, принимающий значение gauge или counter
+		Delta *int64   `json:"delta,omitempty"` // значение метрики в случае передачи counter
+		Value *float64 `json:"value,omitempty"` // значение метрики в случае передачи gauge
+	}
 
 	for metricName, metricValue := range metricsMap {
 		var metricType string
@@ -116,12 +125,47 @@ func sendDataToServer(serverURL string, metrics RuntimeMetrics) error {
 		} else {
 			metricType = "gauge"
 		}
-		link := fmt.Sprintf("%s/update/%s/%s/%v", serverURL, metricType, metricName, metricValue)
-		fmt.Println(link)
-		resp, err := http.Post(link, "text/plain", nil)
+
+		metric := Metrics{
+			ID:    metricName,
+			MType: metricType,
+		}
+
+		if metricType == "gauge" {
+			value := metricValue.(float64)
+			metric.Value = &value
+		} else {
+			delta := metricValue.(int64)
+			metric.Delta = &delta
+		}
+
+		jsonData, err := json.Marshal(metric)
+		if err != nil {
+			return fmt.Errorf("failed to marshal metric: %w", err)
+		}
+
+		var buf bytes.Buffer
+		gz := gzip.NewWriter(&buf)
+		if _, err := gz.Write(jsonData); err != nil {
+			return fmt.Errorf("failed to compress data: %w", err)
+		}
+		gz.Close()
+
+		link := fmt.Sprintf("%s/update/", serverURL)
+		fmt.Println("Sending to:", link, "Data:", string(jsonData))
+		req, err := http.NewRequest("POST", link, &buf)
+		if err != nil {
+			return fmt.Errorf("failed to create request: %w", err)
+		}
+		req.Header.Set("Content-Encoding", "gzip")
+		req.Header.Set("Content-Type", "application/json")
+		req.Header.Set("Accept-Encoding", "gzip")
+
+		client := &http.Client{}
+		resp, err := client.Do(req)
 
 		if err != nil {
-			return err
+			return fmt.Errorf("failed to send metric: %w", err)
 		}
 		defer resp.Body.Close()
 
